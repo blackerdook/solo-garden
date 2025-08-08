@@ -1,82 +1,154 @@
-import { FlatList, Text, View, StyleSheet, Dimensions } from 'react-native';
-import React from 'react'
-import { ImageBackground } from 'expo-image';
-import { Colors } from 'react-native/Libraries/NewAppScreen';
+import React, { useRef, useState } from 'react';
+import {
+  FlatList,
+  View,
+  StyleSheet,
+  Dimensions,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  TouchableOpacity,
+  Text,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Guide from '../components/Guide';
+import SkipButton from '../components/SkipButton';
+import scq1 from '../assets/sc1.png';
+import scq3 from '../assets/sc3.png';
 
-const UserW = () => {
+const { width } = Dimensions.get('window');
 
-    const slide = [
-        {
-        key: 1,
-        title: 'Slide 1',
-        description: 'This is the first slide',
-        backgroundColor: 'white',
-        },
-        {
-        key: 2,
-        title: 'Slide 2',
-        description: 'This is the first slide',
-        backgroundColor: 'white',
-        },
-        {
-        key: 3,
-        title: 'Slide 3',
-        description: 'This is the first slide',
-        backgroundColor: 'white',
-        },
-        {
-        key: 4,
-        title: 'Slide 4',
-        description: 'This is the first slide',
-        backgroundColor: 'white',
-        }
-    ]
-        
-  return (
-<>
-    <FlatList 
-    horizontal
-    pagingEnabled
-    data={slide} keyExtractor={(item) => item.key.toString()}
-    renderItem={({item}) => (
-        <View style={[styles.slides, {backgroundColor: item.backgroundColor}]}>
-            <Text>{item.title}</Text>
-             <Text>{item.description}</Text>
-        </View>
-    )} />
-    <View style = {styles.indicatorContainer} >
-        {slide.map(item => (
-        <View key={item.key.toString()} style={styles.indicator} />))}
-    </View>
-</>
-    
-  )
-}
+type UserWProps = {
+  onSkip: () => void;
+};
 
-export default UserW
-const {width, height}= Dimensions.get('window')
-const styles = StyleSheet.create({
-    slides: {
-        width,
-        height,
-        justifyContent: 'center',
-        alignItems: 'center',
-    
+const UserW: React.FC<UserWProps> = ({ onSkip }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
+
+  const guides = [
+    {
+      key: 1,
+      title: 'Welcome',
+      description: 'Earn XP, discover new plants, and become a garden master!',
+      image: require('../assets/bg1.jpg'),
+      buttonText: "Let’s get growing.",
     },
-    indicatorContainer: {
-        position: 'absolute',
-        width,
-        bottom: 40,
-        flexDirection: 'row',
-        justifyContent: 'center',
+    {
+      key: 2,
+      title: '',
+      description: '',
+      image: require('../assets/sc1.png'),
     },
-    indicator: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: 'black',
-        marginHorizontal: 5,
+    {
+      key: 3,
+      title: '',
+      description: '',
+      image: require('../assets/sc1.png'),
+
+    },
+    {
+      key: 4,
+      title: '',
+      description: '',
+      image: require('../assets/sc3.png'),
+    },
+    {
+      key: 5,
+      title: '',
+      description: '',
+      image: require('../assets/sc1.png'),
+
     }
+  ];
 
-    
-})
+  const handleSkip = async () => {
+    await AsyncStorage.setItem('hasSeenGuide', 'true');
+    onSkip();
+  };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+    setActiveIndex(slideIndex);
+  };
+
+  const handleNext = () => {
+    flatListRef.current?.scrollToIndex({ index: 1, animated: true });
+  };
+
+  return (
+    <View style={styles.container}>
+      <SkipButton onPress={handleSkip} />
+
+      <FlatList
+        ref={flatListRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        data={guides}
+        keyExtractor={(item) => item.key.toString()}
+        renderItem={({ item, index }) => (
+          <Guide item={item} onNext={index === 0 ? handleNext : undefined} />
+        )}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      />
+
+      <View style={styles.indicatorContainer}>
+        {guides.map((item, index) => (
+          <View
+            key={item.key.toString()}
+            style={[
+              styles.indicator,
+              index === activeIndex && styles.activeIndicator,
+            ]}
+          />
+        ))}
+      </View>
+
+      {activeIndex === guides.length - 1 && (
+        <TouchableOpacity style={styles.continueButton} onPress={handleSkip}>
+          <Text style={styles.continueText}>Continue</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+export default UserW;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  indicatorContainer: {
+    position: 'absolute',
+    bottom: 40,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  indicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#ccc',
+    marginHorizontal: 5,
+  },
+  activeIndicator: {
+    backgroundColor: 'black',
+  },
+  continueButton: {
+    position: 'absolute',
+    bottom: 100,
+    alignSelf: 'center',
+    backgroundColor: '#000',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  continueText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+});
