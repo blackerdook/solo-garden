@@ -1,3 +1,4 @@
+// screens/UserW.tsx
 import React, { useRef, useState } from 'react';
 import {
   FlatList,
@@ -8,24 +9,31 @@ import {
   NativeScrollEvent,
   TouchableOpacity,
   Text,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Checkbox from 'expo-checkbox';
 import Guide from '../components/Guide';
 import SkipButton from '../components/SkipButton';
-import scq1 from '../assets/sc1.png';
-import scq3 from '../assets/sc3.png';
 
 const { width } = Dimensions.get('window');
 
-type UserWProps = {
-  onSkip: () => void;
+type UserWProps = { onSkip: () => void };
+
+type GuideItem = {
+  key: number;
+  title: string;
+  description: string;
+  image: any; // require(...)
+  buttonText?: string;
 };
 
 const UserW: React.FC<UserWProps> = ({ onSkip }) => {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
+  const [activeIndex, setActiveIndex] = useState<number>(0);
+  const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false);
+  const flatListRef = useRef<FlatList<GuideItem>>(null);
 
-  const guides = [
+  const guides: GuideItem[] = [
     {
       key: 1,
       title: 'Welcome',
@@ -33,32 +41,10 @@ const UserW: React.FC<UserWProps> = ({ onSkip }) => {
       image: require('../assets/bg1.jpg'),
       buttonText: "Let’s get growing.",
     },
-    {
-      key: 2,
-      title: '',
-      description: '',
-      image: require('../assets/sc1.png'),
-    },
-    {
-      key: 3,
-      title: '',
-      description: '',
-      image: require('../assets/sc1.png'),
-
-    },
-    {
-      key: 4,
-      title: '',
-      description: '',
-      image: require('../assets/sc3.png'),
-    },
-    {
-      key: 5,
-      title: '',
-      description: '',
-      image: require('../assets/sc1.png'),
-
-    }
+    { key: 2, title: '', description: '', image: require('../assets/Test.png') },
+    { key: 3, title: '', description: '', image: require('../assets/g2.png') },
+    { key: 4, title: '', description: '', image: require('../assets/g3.png') },
+    { key: 5, title: '', description: '', image: require('../assets/g4.png') },
   ];
 
   const handleSkip = async () => {
@@ -71,6 +57,7 @@ const UserW: React.FC<UserWProps> = ({ onSkip }) => {
     setActiveIndex(slideIndex);
   };
 
+  // Optional checkbox — no gating
   const handleNext = () => {
     flatListRef.current?.scrollToIndex({ index: 1, animated: true });
   };
@@ -87,24 +74,49 @@ const UserW: React.FC<UserWProps> = ({ onSkip }) => {
         data={guides}
         keyExtractor={(item) => item.key.toString()}
         renderItem={({ item, index }) => (
-          <Guide item={item} onNext={index === 0 ? handleNext : undefined} />
+          <View style={{ width, flex: 1 }}>
+            <Guide
+              item={item}
+              onNext={index === 0 ? handleNext : undefined}
+            />
+
+            {/* Optional Terms & Conditions on slide 1 (does NOT block the button) */}
+            {index === 0 && (
+              <View style={styles.tcRowOuter} pointerEvents="box-none">
+                <View style={styles.tcRowInner} pointerEvents="auto">
+                  <Checkbox
+                    value={acceptedTerms}
+                    onValueChange={async (v) => {
+                      setAcceptedTerms(v);
+                      // store if you want to read later (optional)
+                      try { await AsyncStorage.setItem('acceptedTerms', JSON.stringify(v)); } catch {}
+                    }}
+                    style={styles.checkbox}
+                    accessibilityLabel="Accept Terms and Conditions"
+                  />
+                  <Text style={styles.tcText}>
+                    I agree to the <Text style={styles.tcLink}>Terms & Conditions</Text>
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
         )}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       />
 
+      {/* Page dots */}
       <View style={styles.indicatorContainer}>
         {guides.map((item, index) => (
           <View
             key={item.key.toString()}
-            style={[
-              styles.indicator,
-              index === activeIndex && styles.activeIndicator,
-            ]}
+            style={[styles.indicator, index === activeIndex && styles.activeIndicator]}
           />
         ))}
       </View>
 
+      {/* Continue button on last slide */}
       {activeIndex === guides.length - 1 && (
         <TouchableOpacity style={styles.continueButton} onPress={handleSkip}>
           <Text style={styles.continueText}>Continue</Text>
@@ -117,15 +129,16 @@ const UserW: React.FC<UserWProps> = ({ onSkip }) => {
 export default UserW;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+
+  // --- Page indicators
   indicatorContainer: {
     position: 'absolute',
     bottom: 40,
     flexDirection: 'row',
     justifyContent: 'center',
     width: '100%',
+    zIndex: 5,
   },
   indicator: {
     width: 10,
@@ -134,9 +147,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
     marginHorizontal: 5,
   },
-  activeIndicator: {
-    backgroundColor: 'black',
-  },
+  activeIndicator: { backgroundColor: 'black' },
+
+  // --- Continue (last slide)
   continueButton: {
     position: 'absolute',
     bottom: 100,
@@ -145,10 +158,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 25,
+    zIndex: 5,
   },
-  continueText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+  continueText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+
+  // --- Terms & Conditions row (absolute, below CTA; optional only)
+  tcRowOuter: {
+    position: 'absolute',
+    alignSelf: 'center',
+    bottom: 80, // adjust to sit under your "Let’s get growing." button
+    zIndex: 10,
   },
+  tcRowInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 12,
+    ...Platform.select({
+      ios: { },
+      android: { },
+    }),
+  },
+  checkbox: { width: 20, height: 20, marginRight: 8 },
+  tcText: { fontSize: 14 },
+  tcLink: { textDecorationLine: 'underline' },
 });

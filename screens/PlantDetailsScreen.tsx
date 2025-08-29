@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator } from 'react-native';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ImageBackground,
+  ScrollView,
+  ActivityIndicator,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
+import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 
 const API_KEY = 'sk-2V8M689425f03ad9e11730';
@@ -21,17 +31,26 @@ type PlantDetail = {
   sunlight?: string[] | string;
   cycle?: string;
   hardiness?: { min: string; max: string };
-  default_image?: {
-    original_url: string;
-  };
+  default_image?: { original_url: string };
   cone?: boolean;
   leaf?: boolean;
   growth_rate?: string;
   care_level?: string;
 };
 
+const DetailSection = ({ title, value, icon }: { title: string; value: string; icon?: string }) => (
+  <View style={styles.detailBlock}>
+    <View style={styles.detailRow}>
+      {icon && <Ionicons name={icon as any} size={18} color="#228B22" style={{ marginRight: 6 }} />}
+      <Text style={styles.sectionTitle}>{title}:</Text>
+    </View>
+    <Text style={styles.sectionValue}>{value}</Text>
+  </View>
+);
+
 const PlantDetailScreen = () => {
   const route = useRoute<RouteProp<RouteParams, 'PlantDetail'>>();
+  const navigation = useNavigation();
   const { plantId } = route.params;
 
   const [plant, setPlant] = useState<PlantDetail | null>(null);
@@ -63,85 +82,137 @@ const PlantDetailScreen = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {plant.default_image?.original_url && (
-        <Image source={{ uri: plant.default_image.original_url }} style={styles.image} />
-      )}
-      <Text style={styles.title}>{plant.common_name || 'Unknown Plant'}</Text>
-      <Text style={styles.subtitle}>{plant.scientific_name || 'N/A'}</Text>
-      <Text style={styles.text}>
-        Also Known As: {plant.other_name?.length ? plant.other_name.join(', ') : 'N/A'}
-      </Text>
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      {/* Custom back button overlay */}
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons name="chevron-back" size={22} color="#111" />
+      </TouchableOpacity>
 
-      <Text style={styles.sectionTitle}>Description:</Text>
-      <Text style={styles.text}>{plant.description || 'No description available.'}</Text>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header Image */}
+        <ImageBackground
+          source={{ uri: plant.default_image?.original_url }}
+          style={styles.headerImage}
+          imageStyle={{ borderBottomLeftRadius: 30, borderBottomRightRadius: 30 }}
+        >
+          <View style={styles.overlay} />
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.plantName}>{plant.common_name || 'Unknown Plant'}</Text>
+            <Text style={styles.plantSciName}>{plant.scientific_name || 'N/A'}</Text>
+          </View>
+        </ImageBackground>
 
-      <Text style={styles.sectionTitle}>Cycle:</Text>
-      <Text style={styles.text}>{plant.cycle || 'N/A'}</Text>
+        {/* Details Section */}
+        <View style={styles.detailsSection}>
+          {plant.other_name?.length ? (
+            <Text style={styles.altName}>Also Known As: {plant.other_name.join(', ')}</Text>
+          ) : null}
 
-      <Text style={styles.sectionTitle}>Watering:</Text>
-      <Text style={styles.text}>{plant.watering || 'N/A'}</Text>
-
-      <Text style={styles.sectionTitle}>Sun:</Text>
-      <Text style={styles.text}>
-        {Array.isArray(plant.sunlight) ? plant.sunlight.join(', ') : plant.sunlight || 'N/A'}
-      </Text>
-
-      <Text style={styles.sectionTitle}>Hardiness Zone:</Text>
-      <Text style={styles.text}>
-        {plant.hardiness?.min || '?'} - {plant.hardiness?.max || '?'}
-      </Text>
-
-      <Text style={styles.sectionTitle}>Cones:</Text>
-      <Text style={styles.text}>{plant.cone ? 'Yes' : 'No'}</Text>
-
-      <Text style={styles.sectionTitle}>Leaf:</Text>
-      <Text style={styles.text}>{plant.leaf ? 'Yes' : 'No'}</Text>
-
-      <Text style={styles.sectionTitle}>Growth Rate:</Text>
-      <Text style={styles.text}>{plant.growth_rate || 'N/A'}</Text>
-
-      <Text style={styles.sectionTitle}>Care Level:</Text>
-      <Text style={styles.text}>{plant.care_level || 'N/A'}</Text>
-    </ScrollView>
+          <DetailSection title="Description" value={plant.description || 'No description available.'} />
+          <DetailSection title="Cycle" value={plant.cycle || 'N/A'} />
+          <DetailSection title="Watering" value={plant.watering || 'N/A'} icon="water-outline" />
+          <DetailSection
+            title="Sun"
+            value={Array.isArray(plant.sunlight) ? plant.sunlight.join(', ') : plant.sunlight || 'N/A'}
+            icon="sunny-outline"
+          />
+          <DetailSection
+            title="Hardiness Zone"
+            value={`${plant.hardiness?.min || '?'} - ${plant.hardiness?.max || '?'}`}
+            icon="thermometer-outline"
+          />
+          <DetailSection title="Cones" value={plant.cone ? 'Yes' : 'No'} />
+          <DetailSection title="Leaf" value={plant.leaf ? 'Yes' : 'No'} />
+          <DetailSection title="Growth Rate" value={plant.growth_rate || 'N/A'} />
+          <DetailSection title="Care Level" value={plant.care_level || 'N/A'} />
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
 export default PlantDetailScreen;
 
 const styles = StyleSheet.create({
+  backBtn: {
+    position: 'absolute',
+    top: Platform.select({ ios: 40, android: 28 }),
+    left: 14,
+    zIndex: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     backgroundColor: '#fff',
   },
-  container: {
-    padding: 20,
+  headerImage: {
+    height: 260,
+    justifyContent: 'flex-end',
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerTextContainer: {
+    zIndex: 2,
+  },
+  plantName: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  plantSciName: {
+    fontSize: 16,
+    fontStyle: 'italic',
+    color: '#e0e0e0',
+    marginTop: 2,
+  },
+  detailsSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 40,
     backgroundColor: '#fff',
   },
-  image: {
-    width: '100%',
-    height: 250,
-    borderRadius: 12,
-    marginBottom: 20,
+  altName: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 18,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
+  detailBlock: {
+    marginBottom: 18, // More breathing space between sections
   },
-  subtitle: {
-    fontSize: 18,
-    fontStyle: 'italic',
-    color: '#666',
-    marginBottom: 10,
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   sectionTitle: {
-    fontSize: 18,
-    marginTop: 14,
-    fontWeight: '600',
-  },
-  text: {
     fontSize: 16,
-    marginTop: 4,
+    fontWeight: '600',
+    color: '#222',
+  },
+  sectionValue: {
+    fontSize: 15,
+    color: '#444',
+    lineHeight: 20,
   },
 });

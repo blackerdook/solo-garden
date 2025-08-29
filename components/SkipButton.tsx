@@ -23,11 +23,11 @@ const styles = StyleSheet.create({
     zIndex: 10,
     paddingHorizontal: 15,
     paddingVertical: 8,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 1)',
     borderRadius: 20,
   },
   skipText: {
-    color: 'black',
+    color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
   },
