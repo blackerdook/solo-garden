@@ -1,57 +1,85 @@
 // navigation/AppNavigator.tsx
-import React, { useState } from 'react';
-import {
-  View,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-} from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View, Keyboard, Platform } from "react-native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 
-import Home from '../screens/Home';
-import Plants from '../screens/Plants';
-import Camera from '../screens/Camera';
-import Remedy from '../screens/Remedy';
-import Profile from '../screens/Profile';
-
-import PlantStack from './PlantStack';
+import Home from "../screens/Home";
+import SeasonalPlants from "../screens/SeasonalPlants";
+import PlantStack from "./PlantStack";
+import Camera from "../screens/Camera";
+import Remedy from "../screens/Remedy";
+import ProfileStack from "./ProfileStack";
+import ChatAssistant from "../components/PlantAssistant";
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+function HomeStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeMain" component={Home} />
+      <Stack.Screen name="SeasonalPlants" component={SeasonalPlants} />
+    </Stack.Navigator>
+  );
+}
 
 const AppNavigator = () => {
-  const [showMenu, setShowMenu] = useState(false);
-  const navigation = useNavigation();
+  const [keyboardOffset, setKeyboardOffset] = useState(120);
 
-  const handleMenuToggle = () => {
-    setShowMenu((prev) => !prev);
-  };
-
-  const handleMenuAction = (screenName: string) => {
-    setShowMenu(false);
-    navigation.navigate(screenName as never);
-  };
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (e) => {
+        setKeyboardOffset(e.endCoordinates.height + 20); // push above keyboard
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => {
+        setKeyboardOffset(120); // reset default
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   return (
-    <View style={{ flex: 1 }}>
-      <Tab.Navigator screenOptions={{ headerShown: false }}>
+    <>
+      <Tab.Navigator
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: "green",
+          tabBarInactiveTintColor: "gray",
+          tabBarLabelStyle: { fontSize: 12, fontWeight: "600" },
+        }}
+      >
         <Tab.Screen
           name="Home"
-          component={Home}
+          component={HomeStack}
           options={{
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
+              <Ionicons
+                name={focused ? "home" : "home-outline"}
+                size={focused ? 30 : 24}
+                color={focused ? "green" : color}
+              />
             ),
           }}
         />
-       <Tab.Screen
+        <Tab.Screen
           name="Plants"
-          component={PlantStack} 
+          component={PlantStack}
           options={{
-            headerShown: false,
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name="leaf" size={24} color={color} />
+              <Ionicons
+                name={focused ? "leaf" : "leaf-outline"}
+                size={focused ? 30 : 24}
+                color={focused ? "green" : color}
+              />
             ),
           }}
         />
@@ -59,8 +87,12 @@ const AppNavigator = () => {
           name="Camera"
           component={Camera}
           options={{
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="camera" size={24} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? "camera" : "camera-outline"}
+                size={focused ? 30 : 24}
+                color={focused ? "green" : color}
+              />
             ),
           }}
         />
@@ -68,23 +100,44 @@ const AppNavigator = () => {
           name="Remedy"
           component={Remedy}
           options={{
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="medkit" size={24} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? "medkit" : "medkit-outline"}
+                size={focused ? 30 : 24}
+                color={focused ? "green" : color}
+              />
             ),
           }}
         />
         <Tab.Screen
           name="Profile"
-          component={Profile}
+          component={ProfileStack}
           options={{
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="person-outline" size={24} color={color} />
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons
+                name={focused ? "person" : "person-outline"}
+                size={focused ? 30 : 24}
+                color={focused ? "green" : color}
+              />
             ),
           }}
         />
       </Tab.Navigator>
-    </View>
+
+      {/* Floating chat button */}
+      <View style={[styles.chatContainer, { bottom: keyboardOffset }]}>
+        <ChatAssistant />
+      </View>
+    </>
   );
 };
+
+const styles = StyleSheet.create({
+  chatContainer: {
+    position: "absolute",
+    left: 20,
+    zIndex: 999,
+  },
+});
 
 export default AppNavigator;

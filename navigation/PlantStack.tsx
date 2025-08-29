@@ -13,8 +13,8 @@ const Stack = createNativeStackNavigator<PlantStackParamList>();
 const PlantStack = () => {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="PlantsScreen" component={PlantsScreen} options={{ title: 'Plants' }} />
-      <Stack.Screen name="PlantDetail" component={PlantDetail} options={{ title: 'Plant Details' }} />
+      <Stack.Screen name="PlantsScreen" component={PlantsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="PlantDetail" component={PlantDetail} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 };
